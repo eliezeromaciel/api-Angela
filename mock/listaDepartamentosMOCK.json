@@ -1,0 +1,14 @@
+[
+    { 
+        "id_dpto": 1,
+        "nome": "Centro Dados FAKE arquivo departamentossssssss",
+        "sigla": "CDF"
+        },
+        
+    { 
+        "id_dpto": 2,
+        "nome": "Rec. Humanos FAKE arquivo departamentossssssss",
+        "sigla": "RHF"
+        }
+            
+]
