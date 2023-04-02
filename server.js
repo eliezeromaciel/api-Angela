@@ -29,14 +29,24 @@ app.use('/swagger-ui', swaggerUI.serve, swaggerUI.setup(swaggerSpec))
 const useMock = false
 
 
-// LISTA TODOS CLIENTES
+/**LISTA TODOS CLIENTES
+ * @swagger
+ * 
+ * /clientes:
+ *  get:
+ *    description: lista todos os clientes, ordenados pelo ID.
+ *    produces: 
+ *      - application/json
+ *    responses: 
+ *      200:
+ *        description: exibe todos os clientes, em um vetor.
+ */
 app.get('/clientes', (req, res) => {
   if (useMock) {
     res.send('usar o mock')
     return  
   }
-
-  con.query('SELECT * FROM CLIENTES', (err, result) => {
+  con.query('SELECT * FROM CLIENTE', (err, result) => {
     if (err) {
       res.status(500)
       res.send(err)
@@ -45,37 +55,52 @@ app.get('/clientes', (req, res) => {
   })
 })
 
-// LISTA TODOS CLIENTES e SEUS TELEFONES
-app.get('/clientesetelefones', (req, res) => {
-  if (useMock) {
-    res.send('listarDepartamentosMOCK')
-    return  
-  }
-
-  con.query(`SELECT clientes.nome, clientes.id_cliente, telefones.numero
-    FROM 
-		  CLIENTES
-	  INNER JOIN TELEFONES
-    ON clientes.id_cliente = telefones.id_cliente;`, (err, result) => {
-    if (err) {
-      res.status(500)
-      res.send(err)
-    }
-    res.send(result)
-  })
-})
-
-// ADICIONA NOVA CLIENTE
+/** ADICIONA NOVO CLIENTE 
+ * @swagger
+ * 
+ * /clientes:
+ *  post:
+ *    description: Insere um cliente na base
+ *    produces:
+ *      - application/json
+ *    parameters:
+ *      - in: formData
+ *        name: nome
+ *        description: nome do cliente 
+ *        required: true
+ *        type: string
+ *      - in: formData
+ *        name: telefone
+ *        description: telefone do cliente (unique)
+ *        required: true
+ *        type: string
+ *      - in: formData
+ *        name: dataNascimento
+ *        description: nascimento do cliente 
+ *        required: true
+ *        type: string
+ *      - in: formData
+ *        name: instagram
+ *        description: instagram do cliente
+ *        required: false
+ *        type: string
+ *    responses:
+ *      200:
+ *        description: registro inserido com sucesso
+ *      500:
+ *        description: erro do banco de dados
+ */
 app.post('/clientes', (req, res) => {
   if (useMock) {
-    res.send('listarDepartamentoMOCK sei la lkalj;lkjaohaiu')
+    res.send('usar o mock')
     return  
   }
 
-  const { nome } = req.body
-  
-  if (nome){  
-    con.query(`INSERT INTO CLIENTES (nome) VALUES ('${nome}')`, (err, result) => {
+  const { nome, telefone, dataNascimento, instagram } = req.body
+
+  // FAZ REQUEST SE TEM TODOS CAMPOS
+  if (nome && telefone && dataNascimento && instagram){  
+    con.query(`INSERT INTO Cliente (nome, telefone, dataNascimento, instagram) VALUES ('${nome}','${telefone}','${dataNascimento}', '${instagram}')`, (err, result) => {
       if (err) {
         res.status(500)
         res.send(err)
@@ -93,6 +118,28 @@ app.post('/clientes', (req, res) => {
       res.send(result)
     })
   }
+
+  // FAZ REQUEST SEM CAMPO INSTAGRAM
+  if (nome && telefone && dataNascimento && instagram === undefined){  
+    con.query(`INSERT INTO Cliente (nome, telefone, dataNascimento) VALUES ('${nome}','${telefone}','${dataNascimento}')`, (err, result) => {
+      if (err) {
+        res.status(500)
+        res.send(err)
+        return   
+      }
+  
+      if (result.insertId) {
+        res.send({
+          message: 'Register inserted with success',
+          insertId: result.insertId
+        })  
+        return
+      }
+
+      res.send(result)
+    })
+  }
+
 })
 
 
@@ -167,43 +214,6 @@ app.put('/departamento/:idDepartamento', (req, res) => {
   }
 })
   
-
-
-
-/**
- * @swagger
- * 
- * /departamento/{idDepartamento}:
- *  delete:
- *    description: deleta um departamento na base de dados com base no ID do departamento especificado na URL.
- *    produces:
- *      - application/json
- *    parameters:
- *      - in: path
- *        name: idDepartamento
- *        description: ID do departamento a ser deletado.
- *        required: true
- *        type: integer
- *    responses:
- *      200:
- *        description: Departamento deletado com sucesso.
- *        schema:
- *          type: object
- *          properties:
- *            message:
- *              type: string
- *              example: DEPTO deleted with success.
- *      400:
- *        description: Requisição inválida.
- *        schema:
- *          type: object
- *          properties:
- *            message:
- *              type: string
- *              example: Deleted not executed.
- *      500:
- *        description: Erro de banco de dados.
- */
 app.delete('/departamento/:idDepartamento',  (req, res) => {
   const { idDepartamento } = req.params
 
@@ -247,7 +257,7 @@ app.delete('/departamento/:idDepartamento',  (req, res) => {
 // })
 
 
-// Exemplo utilizando diversos formatos de parametros professor
+
 app.get('/funcionarios/:busca', (req, res) => {
   const { busca } = req.params
   const { exact, searchField } = req.body
@@ -264,6 +274,27 @@ app.get('/funcionarios/:busca', (req, res) => {
 })
 
 
+
+// // LISTA TODOS CLIENTES e SEUS TELEFONES
+
+// app.get('/clientesetelefones', (req, res) => {
+//   if (useMock) {
+//     res.send('listarDepartamentosMOCK')
+//     return  
+//   }
+
+//   con.query(`SELECT clientes.nome, clientes.id_cliente, telefones.numero
+//     FROM 
+// 		  CLIENTES
+// 	  INNER JOIN TELEFONES
+//     ON clientes.id_cliente = telefones.id_cliente;`, (err, result) => {
+//     if (err) {
+//       res.status(500)
+//       res.send(err)
+//     }
+//     res.send(result)
+//   })
+// })
 app.listen(3033, () => {
   console.log('Server is running!')
 })
