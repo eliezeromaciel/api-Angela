@@ -55,6 +55,32 @@ app.get('/clientes', (req, res) => {
   })
 })
 
+/**LISTA TODOS FUNCIONARIOS
+ * @swagger
+ * 
+ * /funcionarios:
+ *  get:
+ *    description: lista todos os funcionarios, ordenados pelo ID.
+ *    produces: 
+ *      - application/json
+ *    responses: 
+ *      200:
+ *        description: exibe todos os funcionarios, em um vetor.
+ */
+app.get('/funcionarios', (req, res) => {
+  if (useMock) {
+    res.send('usar o mock')
+    return  
+  }
+  con.query('SELECT * FROM FUNCIONARIO', (err, result) => {
+    if (err) {
+      res.status(500)
+      res.send(err)
+    }
+    res.send(result)
+  })
+})
+
 /** ADICIONA NOVO CLIENTE 
  * @swagger
  * 
@@ -142,159 +168,171 @@ app.post('/clientes', (req, res) => {
 
 })
 
-
-
-app.put('/departamento/:idDepartamento', (req, res) => {
-  const { idDepartamento } = req.params
-  const { nome, sigla } = req.body
-    
-  if (nome && sigla) {
-    con.query(`UPDATE DEPARTAMENTOS SET nome='${nome}', sigla='${sigla}' WHERE id_departamento='${idDepartamento}'`, (err, result) => {
+/** ADICIONA NOVO FUNCIONARIO 
+ * @swagger
+ * 
+ * /funcionarios:
+ *  post:
+ *    description: Insere um funcionario na base
+ *    produces:
+ *      - application/json
+ *    parameters:
+ *      - in: formData
+ *        name: nome
+ *        description: nome do funcionario 
+ *        required: true
+ *        type: string
+ *      - in: formData
+ *        name: telefone
+ *        description: telefone do funcionario (unique)
+ *        required: true
+ *        type: string
+ *    responses:
+ *      200:
+ *        description: registro inserido com sucesso
+ *      500:
+ *        description: erro do banco de dados
+ */
+app.post('/funcionarios', (req, res) => {
+  if (useMock) {
+    res.send('usar o mock')
+    return  
+  }
+  const {nome, telefone} = req.body
+  if (nome && telefone){  
+    con.query(`INSERT INTO Funcionario (nome, telefone) VALUES ('${nome}','${telefone}')`, (err, result) => {
       if (err) {
         res.status(500)
         res.send(err)
-        return  // sem esse retorno, quebra a aplica;çao. pois ela vai tentar continuar executando os código abaixo. 
+        return   
       }
-          
+      if (result.insertId) {
+        res.send({
+          message: 'Register inserted with success',
+          insertId: result.insertId
+        })  
+        return
+      }
+      res.send(result)
+    })
+  }
+})
+
+/** MODIFICA FUNCIONARIO
+ * @swagger
+ * /funcionario/{funcionarioId}:
+ *  put:
+ *    description: Atualiza um funcionario na base de dados com base no ID do funcionario especificado na URL.
+ *    produces:
+ *      - application/json
+ *    parameters:
+ *      - in: path
+ *        name: funcionarioId
+ *        description: ID do funcionario que será atualizado.
+ *        required: true
+ *        type: integer
+ *      - in: body
+ *        name: body
+ *        description: Objeto JSON com as informações do funcionario a serem atualizadas.
+ *        required: true
+ *        schema:
+ *          type: object
+ *          properties:
+ *            nome:
+ *              type: string
+ *              description: Nome do funcionario
+ *            telefone:
+ *              type: string
+ *              description: Telefone do funcionario.
+ *    responses:
+ *      200:
+ *        description: Funcionario atualizado com sucesso.
+ *        schema:
+ *          type: object
+ *          properties:
+ *            message:
+ *              type: string
+ *              example: Funcionario atualizado com sucesso.
+ *      400:
+ *        description: Requisição inválida.
+ *        schema:
+ *          type: object
+ *          properties:
+ *            message:
+ *              type: string
+ *              example: register not modified.
+ *      500:
+ *        description: Erro de banco de dados.
+ */
+app.put('/funcionario/:funcionarioId', (req, res) => {
+  const {funcionarioId} = req.params
+  const {nome, telefone} = req.body
+
+  if (nome && telefone) {
+    con.query(`UPDATE Funcionario SET nome='${nome}', telefone='${telefone}' WHERE funcionarioId='${funcionarioId}'`, (err, result) => {
+      if(err) {
+        res.status(500)
+        res.send(err)
+        return
+      }
       if (result.changedRows ==! 0) {
         res.send({
-          message: 'NOME e SIGLA modified with success',
+          message: 'nome e telefone modified with success',
         })
-      }
-      else {res.send({
+      } else
+      {res.send({
         message: 'register not modified'
-      })}
-    })
+      })
+      }    })
     return
   }
 
-  if (nome){
-    con.query(`UPDATE DEPARTAMENTOS SET nome='${nome}' WHERE id_departamento='${idDepartamento}'`, (err, result) => {
-      if (err) {
+  if (nome) {
+    con.query(`UPDATE Funcionario SET nome='${nome}' WHERE funcionarioId='${funcionarioId}'`, (err, result) => {
+      if(err) {
         res.status(500)
         res.send(err)
-        return  // sem esse retorno, quebra a aplica;çao. pois ela vai tentar continuar executando os código abaixo. 
-
+        return
       }
-    
-      if (result.changedRows ==! 0) {
-        res.status(200)
-        res.send({
-          message: 'NOME modified with success',
-        })
-      }
-      else {
-        res.status(400)
-        res.send({
-          message: 'register not modified'
-        })}
-    })
-    return
-  }
-
-  if (sigla){
-    con.query(`UPDATE DEPARTAMENTOS SET sigla='${sigla}' WHERE id_departamento='${idDepartamento}'`, (err, result) => {
-      if (err) {
-        res.status(500)
-        res.send(err)
-        return  // sem esse retorno, quebra a aplica;çao. pois ela vai tentar continuar executando os código abaixo. 
-
-      }
-      
       if (result.changedRows ==! 0) {
         res.send({
-          message: 'SIGLA modified with success',
+          message: 'nome modified with success',
         })
-      }
-      else {res.send({
+      } else
+      {res.send({
         message: 'register not modified'
-      })}
-    })
+      })
+      }    })
     return
   }
-})
-  
-app.delete('/departamento/:idDepartamento',  (req, res) => {
-  const { idDepartamento } = req.params
 
-
-  con.query(`DELETE FROM DEPARTAMENTOS WHERE id_departamento='${idDepartamento}'`, (err, result) => {
-    if (err) {
-      res.status(500)
-      res.send(err)
-      return  // sem esse retorno, quebra a aplica;çao. pois ela vai tentar continuar executando os código abaixo. 
-    }
-    
-    if (result.affectedRows ==! 0) {
-      res.status(200)
-      res.send({
-        message: 'DEPTO deleted with success',
+  if (telefone) {
+    con.query(`UPDATE Funcionario SET telefone='${telefone}' WHERE funcionarioId='${funcionarioId}'`, (err, result) => {
+      if(err) {
+        res.status(500)
+        res.send(err)
+        return
+      }
+      if (result.changedRows ==! 0) {
+        res.send({
+          message: 'telefone modified with success',
+        })
+      } else
+      {res.send({
+        message: 'register not modified'
       })
-    }
-    else {
-      res.status(400)
-      res.send({      
-        message: 'Deleted not executed'
-      })
-    }
-  })
-  return
-})
+      }    })
+    return
+  }
+} )
+
+ 
 
 
 
 
-// exemplo utilizando diversos formatos de parametros (feitos por mim)
-// app.get('/funcionarios:busca', (req, res) => {
-//   const {busca} = req.params
-  
-//   con.query(`SELECT * FROM FUNCIONARIOS WHERE nome LIKE '%${busca}%' `, (err, result) => {
-//     if (err) {
-//       res.send(err)
-//     }
-//     res.send(result)
-//   })
-// })
 
 
-
-app.get('/funcionarios/:busca', (req, res) => {
-  const { busca } = req.params
-  const { exact, searchField } = req.body
-  const strLike = exact ? `= '${busca}'` : `LIKE '%${busca}%'`
-  const query = `SELECT * FROM FUNCIONARIOS WHERE ${searchField} ${strLike}`
-
-
-  con.query(query, (err, result) => {
-    if (err) {
-      res.send(err)
-    }
-    res.send(result)
-  })
-})
-
-
-
-// // LISTA TODOS CLIENTES e SEUS TELEFONES
-
-// app.get('/clientesetelefones', (req, res) => {
-//   if (useMock) {
-//     res.send('listarDepartamentosMOCK')
-//     return  
-//   }
-
-//   con.query(`SELECT clientes.nome, clientes.id_cliente, telefones.numero
-//     FROM 
-// 		  CLIENTES
-// 	  INNER JOIN TELEFONES
-//     ON clientes.id_cliente = telefones.id_cliente;`, (err, result) => {
-//     if (err) {
-//       res.status(500)
-//       res.send(err)
-//     }
-//     res.send(result)
-//   })
-// })
 app.listen(3033, () => {
   console.log('Server is running!')
 })
