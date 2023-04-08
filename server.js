@@ -1,10 +1,9 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import con from './connect-db.js'
-// import listarDepartamentosMOCK from './mock/listarDepartamentoMOCK.json' assert {type: 'json'}
-
 import swaggerJSDoc from 'swagger-jsdoc'
 import swaggerUI from 'swagger-ui-express'
+import bcrypt from 'bcrypt'
 
 const app = express()
 app.use(bodyParser.json())
@@ -27,7 +26,6 @@ const swaggerSpec = swaggerJSDoc(options)
 app.use('/swagger-ui', swaggerUI.serve, swaggerUI.setup(swaggerSpec))
 
 const useMock = false
-
 
 /**LISTA TODOS CLIENTES
  * @swagger
@@ -326,10 +324,126 @@ app.put('/funcionario/:funcionarioId', (req, res) => {
   }
 } )
 
- 
+// ADICIONA NOVO USUARIO
+app.post('/usuarios', async (req, res) => {
+  if (useMock) {
+    res.send('usar o mock')
+    return  
+  }
+  
+  const {perfil, email, senha} = req.body
+  function validaEmail (param) {
+    const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+    return re.test(param)
+  }
+  const emailEhValido = (validaEmail(email))
+
+  try { 
+    if (perfil && emailEhValido==true && senha) {
+      // await bcrypt.hash(senha, 10, (err, hash)=> {
+      //   if (err) {
+      //     console.log(`erro com bcrypt.hash: ${err}`)
+      //   } 
+      //   console.log(`nao deu erro, mas nao sei o que vai acontecer, e a hash eh ${hash}`)
+      // })
+      const hash = await new Promise((resolve, reject) => {
+        bcrypt.hash(senha, 10, (err, hash) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(hash)
+          }
+        })
+      })
+      
+      con.query(`INSERT INTO Usuario (perfil, email, senha) VALUES ('${perfil}','${email}', '${hash}')`, (err, result) => {
+        if (err) {
+          res.status(500)
+          res.send(`Deu erro no INSERT ====>   ${err}`)
+          return   
+        }
+        
+        if (result.insertId) {
+          res.send({
+            message: 'Register inserted with success',
+            insertId: result.insertId
+          })  
+          return
+        }
+        res.send(`result quando há comando para banco, mas sem criar novo usuario: ${result}`)
+        return
+      })
+    }
+    else {
+      if (emailEhValido == false)
+        res.send('e-mail inválido')  
+      return
+    }
+
+  } catch (err) {
+    console.error(err)
+    res.status(500)
+    res.send(err)
+    return
+  }
+
+})
 
 
 
+
+
+
+// FAZ LOGIN
+app.post('/login', async (req, res) => {
+  if (useMock) {
+    res.send('usar o mock')
+    return  
+  }
+
+  const {email, senha} = req.body
+  try {
+    con.query(`SELECT * FROM Usuario WHERE email='${email}'`, (err,result) => {
+      if (err) {
+        res.status(500)
+        res.send(`Erro:  ${err}`)
+        return   
+      }
+      if (result.length < 1) {
+        res.status(404)
+        res.send('email não encontrado')
+        return
+      } 
+      else {
+        bcrypt.compare('1234',result[0].senha, (errorrrr, resultadooo) => {
+          console.log(`a senha digitada aqui aparece como: ${senha}`)
+          console.log(`a senha recebida do banco de dados eh: ${result[0].senha}`)
+          console.log(`o resultaddoooo é: ${resultadooo} `)
+          console.log(`o erro do bcrypt.compare é: ${errorrrr}`)
+          if (errorrrr) {
+            res.send(`esse é o errrorrrrr: ${errorrrr}`)
+            return
+          }
+          if (resultadooo) {
+            res.send('resultadooo TRUE')
+            return
+          } else {
+            res.send('cacete, tá dando resultado FALSE')
+            return
+          }
+        })
+      }
+    }
+
+    )}
+  catch (err) {
+    console.error(err)
+    res.status(500)
+    res.send(err)
+    return
+  }
+
+})
 
 
 
