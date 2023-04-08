@@ -4,6 +4,7 @@ import con from './connect-db.js'
 import swaggerJSDoc from 'swagger-jsdoc'
 import swaggerUI from 'swagger-ui-express'
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 const app = express()
 app.use(bodyParser.json())
@@ -370,7 +371,7 @@ app.post('/usuarios', async (req, res) => {
           })  
           return
         }
-        res.send(`result quando há comando para banco, mas sem criar novo usuario: ${result}`)
+        res.send(`nao deu pra inserir, mas gerou insert e result foi :  ${result}`)
         return
       })
     }
@@ -388,11 +389,6 @@ app.post('/usuarios', async (req, res) => {
   }
 
 })
-
-
-
-
-
 
 // FAZ LOGIN
 app.post('/login', async (req, res) => {
@@ -415,17 +411,26 @@ app.post('/login', async (req, res) => {
         return
       } 
       else {
-        bcrypt.compare('1234',result[0].senha, (errorrrr, resultadooo) => {
-          console.log(`a senha digitada aqui aparece como: ${senha}`)
-          console.log(`a senha recebida do banco de dados eh: ${result[0].senha}`)
-          console.log(`o resultaddoooo é: ${resultadooo} `)
-          console.log(`o erro do bcrypt.compare é: ${errorrrr}`)
+        bcrypt.compare(senha,result[0].senha, (errorrrr, resultadooo) => {
           if (errorrrr) {
             res.send(`esse é o errrorrrrr: ${errorrrr}`)
             return
           }
           if (resultadooo) {
-            res.send('resultadooo TRUE')
+            // aqui que devo devolver um token
+            const token = jwt.sign({
+              usuarioId : result[0].usuarioId,
+              email : result[0].email
+            }, 
+            'segredo',
+            {
+              expiresIn: '1h',
+            })
+
+            res.send( {
+              mensagem: 'resultadooo TRUE',
+              token: token
+            })
             return
           } else {
             res.send('cacete, tá dando resultado FALSE')
