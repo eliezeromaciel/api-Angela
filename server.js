@@ -411,29 +411,45 @@ app.post('/login', async (req, res) => {
         return
       } 
       else {
-        bcrypt.compare(senha,result[0].senha, (errorrrr, resultadooo) => {
-          if (errorrrr) {
-            res.send(`esse é o errrorrrrr: ${errorrrr}`)
+        bcrypt.compare(senha,result[0].senha, (error, resultado) => {
+          if (error) {
+            res.send(`esse é o errrorrrrr: ${error}`)
             return
           }
-          if (resultadooo) {
-            // aqui que devo devolver um token
+          if (resultado) {
+            // aqui crio um token
             const token = jwt.sign({
               usuarioId : result[0].usuarioId,
               email : result[0].email
             }, 
             'segredo',
             {
-              expiresIn: '1h',
+              expiresIn: '1y',
             })
 
+            // atualiza o campo "token" na tabela "Usuario"
+            con.query(`UPDATE Usuario SET token = '${token}' WHERE usuarioId = '${result[0].usuarioId}'`, (err, result) => {
+              if (err) {
+                console.error(err)
+                res.status(500)
+                res.send('Erro ao atualizar token no banco de dados')
+                return
+              }
+              console.log('Token criado no banco de dados com sucesso')
+              console.log(result)
+            })  
+
+
+
+
+            // aqui devolvo token pro front
             res.send( {
-              mensagem: 'resultadooo TRUE',
+              mensagem: 'senha validada: TRUE',
               token: token
             })
             return
           } else {
-            res.send('cacete, tá dando resultado FALSE')
+            res.send('senha incorreta')
             return
           }
         })
