@@ -6,6 +6,9 @@ import swaggerUI from 'swagger-ui-express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
+import { config } from 'dotenv'
+config()
+
 const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
@@ -422,7 +425,7 @@ app.post('/login', async (req, res) => {
               usuarioId : result[0].usuarioId,
               email : result[0].email
             }, 
-            'segredo',
+            process.env.JWT_KEY,
             {
               expiresIn: '1y',
             })
@@ -436,7 +439,6 @@ app.post('/login', async (req, res) => {
                 return
               }
               console.log('Token criado no banco de dados com sucesso')
-              console.log(result)
             })  
 
 

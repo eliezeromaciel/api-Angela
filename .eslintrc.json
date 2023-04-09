@@ -15,19 +15,19 @@
     "max-len": [
       "warn",
       {
-        "code": 120,
+        "code": 160,
         "ignoreComments": true,
         "ignoreTemplateLiterals": true
       }
     ],
-    "no-console": [
-      "warn",
-      {
-        "allow": [
-          "error"
-        ]
-      }
-    ],
+    // "no-console": [
+    //   "warn",
+    //   {
+    //     "allow": [
+    //       "error"
+    //     ]
+    //   }
+    // ],
     "sort-imports": [
       2,
       {
