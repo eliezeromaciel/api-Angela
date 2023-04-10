@@ -5,9 +5,10 @@ import swaggerJSDoc from 'swagger-jsdoc'
 import swaggerUI from 'swagger-ui-express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-
 import { config } from 'dotenv'
-config()
+import login from './middleware/login.js'
+
+config() // pra rodar dotenv
 
 const app = express()
 app.use(bodyParser.json())
@@ -118,7 +119,7 @@ app.get('/funcionarios', (req, res) => {
  *      500:
  *        description: erro do banco de dados
  */
-app.post('/clientes', (req, res) => {
+app.post('/clientes', login, (req, res) => {  // PRECISA ATUALIZAR SWAGGER, por causa do LOGIN ????
   if (useMock) {
     res.send('usar o mock')
     return  
@@ -441,12 +442,9 @@ app.post('/login', async (req, res) => {
               console.log('Token criado no banco de dados com sucesso')
             })  
 
-
-
-
             // aqui devolvo token pro front
             res.send( {
-              mensagem: 'senha validada: TRUE',
+              mensagem: 'Senha ok. Token criado',
               token: token
             })
             return
