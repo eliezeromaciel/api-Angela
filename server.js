@@ -7,6 +7,8 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { config } from 'dotenv'
 import login from './middleware/login.js'
+import moment from 'moment'
+moment().format()
 
 config() // pra rodar dotenv
 
@@ -44,7 +46,7 @@ const useMock = false
  *      200:
  *        description: exibe todos os clientes, em um vetor.
  */
-app.get('/clientes', (req, res) => {
+app.get('/clientes', login, (req, res) => {
   if (useMock) {
     res.send('usar o mock')
     return  
@@ -421,51 +423,68 @@ app.post('/login', async (req, res) => {
             return
           }
           if (resultado) {
-            // aqui crio um token
-            const token = jwt.sign({
-              usuarioId : result[0].usuarioId,
-              email : result[0].email
-            }, 
-            process.env.JWT_KEY,
-            {
-              expiresIn: '1y',
-            })
-
-            // atualiza o campo "token" na tabela "Usuario"
-            con.query(`UPDATE Usuario SET token = '${token}' WHERE usuarioId = '${result[0].usuarioId}'`, (err, result) => {
+            // AQUI QUERY PARA VER SE EXISTE TOKEN 
+            con.query(`SELECT token FROM Usuario WHERE email='${email}'`, (err, result) => {
               if (err) {
-                console.error(err)
-                res.status(500)
-                res.send('Erro ao atualizar token no banco de dados')
-                return
+                console.log(err)
               }
-              console.log('Token criado no banco de dados com sucesso')
-            })  
+              //EXISTE um token
+              if (result) {
+                // VERIFICA SE EH VALIDO 
+                const decode = jwt.verify(result[0].token, process.env.JWT_KEY) 
+                const tokenEhValido = moment().isBefore(moment.unix(decode.exp))
+                
+                if (tokenEhValido) {
+                  res.send({
+                    mensagem: 'email e senha ok.', 
+                    tokenaindavalido: `${tokenEhValido}`,
+                    token: result[0].token
+                  })
+                } 
+                else {
+                
+                  const token = jwt.sign({
+                    usuarioId : result[0].usuarioId,
+                    email : result[0].email
+                  }, 
+                  process.env.JWT_KEY,
+                  {
+                    expiresIn: '1y',
+                  })
 
-            // aqui devolvo token pro front
-            res.send( {
-              mensagem: 'Senha ok. Token criado',
-              token: token
-            })
-            return
-          } else {
+                  con.query(`UPDATE Usuario SET token = '${token}' WHERE usuarioId = '${result[0].usuarioId}'`, (err, result) => {
+                    if (err) {
+                      console.error(err)
+                      res.status(500)
+                      res.send('Erro ao atualizar token no banco de dados')
+                      return
+                    }
+                    console.log('Token criado no banco de dados com sucesso')
+                  }) 
+
+                  res.send( {
+                    mensagem: 'Senha ok. Token criado',
+                    token: token
+                  })
+                  return
+                }
+              }
+            })          
+          }            
+          else {
             res.send('senha incorreta')
             return
           }
         })
       }
-    }
-
-    )}
-  catch (err) {
+    })
+  } catch (err) {
     console.error(err)
     res.status(500)
     res.send(err)
     return
   }
-
 })
-
 
 
 app.listen(3033, () => {
